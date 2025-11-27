@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CertiConformité - Génération d'Actes Fiscaux</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script type="module">
+        import { createIcons, CheckCircle, Shield, Phone, Loader, Users, Lock, Unlock, Mail, ArrowLeft, Send, XCircle, Activity, Circle, Clipboard, Wallet, ShoppingCart, Check, ListChecks } from 'https://unpkg.com/lucide@latest';
+        createIcons({ icons: { CheckCircle, Shield, Phone, Loader, Users, Lock, Unlock, Mail, ArrowLeft, Send, XCircle, Activity, Circle, Clipboard, Wallet, ShoppingCart, Check, ListChecks } });
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+        }
+        input:disabled, button:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        /* Custom Modal Overlay (utilisé pour les messages d'erreur/succès) */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: none; /* Caché par défaut */
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .modal-overlay.open {
+            display: flex;
+        }
+    </style>
+    <!-- Configuration de Tailwind pour un thème simple et moderne -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#0056b3',
+                        'secondary': '#4c7cff', 
+                        'whatsapp': '#25D366', 
+                        'orange-money': '#ff6600', 
+                        'green-accent': '#10b981', 
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div id="app" class="min-h-screen flex flex-col items-center bg-gray-50 font-sans">
+        <!-- Header -->
+        <div class="w-full max-w-md">
+            <div class="flex items-center justify-between p-4 bg-white border-b border-gray-100 sticky top-0 z-10 shadow-sm">
+                <h1 class="text-xl font-bold text-primary">CertiConformité</h1>
+                <div class="flex items-center space-x-2">
+                    <p id="user-id-display" class="text-xs text-gray-500 truncate max-w-[80px]">ID: Chargement...</p>
+                    <button id="logout-button" class="p-1 rounded-full text-gray-400 hover:text-gray-500 transition hidden" title="Déconnexion">
+                        <i data-lucide="lock" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <main class="container mx-auto px-4 py-8 w-full max-w-md">
+            <div id="content-container">
+                <!-- Le contenu dynamique de l'étape sera inséré ici -->
+            </div>
+            
+            <!-- Footer -->
+            <div class="bg-white p-6 rounded-2xl shadow-inner w-full max-w-md mx-auto my-4 border-t border-gray-200">
+                <h3 class="text-lg font-bold text-gray-800 flex items-center mb-4">
+                    <i data-lucide="users" class="w-5 h-5 mr-2 text-primary"></i>
+                    Support & Contact
+                </h3>
+                <div class="space-y-3">
+                    <div class="flex items-center text-sm text-gray-600">
+                        <i data-lucide="mail" class="w-4 h-4 mr-2 text-gray-500"></i>
+                        <p>contact@certiconformite.com</p>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-600">
+                        <i data-lucide="phone" class="w-4 h-4 mr-2 text-gray-500"></i>
+                        <a id="footer-phone-display" href="tel:00000000" class="hover:text-primary transition">00 00 00 00</a>
+                    </div>
+                </div>
+                <p class="mt-4 text-xs text-center text-gray-400">
+                    © 2025 CertiConformité. Tous droits réservés.
+                </p>
+            </div>
+            
+            <!-- MODALE CUSTOM -->
+            <div id="custom-modal-overlay" class="modal-overlay">
+                <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full text-center transform transition-all">
+                    <i id="modal-icon" data-lucide="check-circle" class="w-12 h-12 mb-4 mx-auto text-blue-500"></i>
+                    <h3 id="modal-title" class="text-xl font-bold text-gray-900 mb-2">Titre</h3>
+                    <p id="modal-message" class="text-gray-600 mb-6">Message</p>
+                    <button id="custom-modal-close-btn" class="bg-primary text-white font-bold py-2 px-4 rounded-lg hover:bg-secondary transition">
+                        OK
+                    </button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script type="module">
+        // Importations Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, setLogLevel, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Variables Globales et Constantes ---
+        
+        // Configuration fournie par l'environnement Canvas
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'certi-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        // Initialisation Firebase
+        let app, db, auth;
+        if (Object.keys(firebaseConfig).length > 0) {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            setLogLevel('Debug');
+        } else {
+            console.error("Firebase n'est pas configuré.");
+        }
+
+        // --- CONSTANTES DE L'APPLICATION (Basées sur l'entrée de l'utilisateur) ---
+        const ORANGE_MONEY_NUMBER = "65 63 42 97"; 
+        const MOOV_WAVE_NUMBER = "71 86 34 26"; 
+        const SUPPORT_PHONE_NUMBER = "65 63 42 97";
+        const FRAIS_ABONNEMENT = 5000;
+        const DUREE_ABONNEMENT = "3 mois";
+        const FRAIS_ACTE_UNIQUE = 1000; 
+
+        // Enum pour l'état de l'application
+        const APP_STATE = {
+            LOADING: 'LOADING',
+            OFFER_SELECTION: 'OFFER_SELECTION', // Étape 1: Choix Abo/Unique
+            PAYMENT_INSTRUCTION: 'PAYMENT_INSTRUCTION', // Étape 2: Instructions & ID Input
+            ACT_SELECTION: 'ACT_SELECTION', // Étape 3: Choix de l'Acte à générer
+            ACT_FORM_INPUT: 'ACT_FORM_INPUT', // Étape 4: Remplissage du formulaire
+            SUCCESS: 'SUCCESS', // Acte généré
+            ERROR: 'ERROR',
+        };
+
+        // État de l'application
+        let currentStep = APP_STATE.LOADING;
+        let userId = null;
+        let isAuthReady = false;
+        let userDoc = null; // Données du document utilisateur
+        let error = '';
+        let loading = true;
+        let selectedActId = null; // ID de l'acte en cours (ex: 'domiciliation')
+
+
+        // --- UTILS UI (pour réutiliser les styles de l'utilisateur) ---
+        const styles = {
+            buttonPrimary: "w-full flex items-center justify-center px-4 py-3 border border-transparent text-base font-bold rounded-xl shadow-lg text-white bg-primary hover:bg-secondary transition duration-200 mt-4 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary",
+            buttonSecondary: "w-full flex items-center justify-center px-4 py-3 border border-gray-300 text-base font-bold rounded-xl shadow-sm text-gray-700 bg-white hover:bg-gray-50 transition duration-200 mt-4",
+            inputField: "w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-primary focus:border-primary sm:text-sm",
+            card: "bg-white p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-md mx-auto my-4",
+            headerText: "text-2xl sm:text-3xl font-extrabold text-gray-900 text-center",
+        };
+        
+        // Définition des Actes disponibles
+        const ACT_DEFINITIONS = [
+            { id: 'domiciliation', title: "Attestation de Domiciliation", icon: 'ListChecks' },
+            { id: 'revenus', title: "Déclaration de Revenus", icon: 'Wallet' },
+            { id: 'exoneration', title: "Demande d'Exonération", icon: 'Check' },
+            { id: 'quitus', title: "Quitus Fiscal", icon: 'Shield' },
+        ];
+        
+        // --- Fonctions Firestore ---
+
+        /**
+         * Met à jour le document utilisateur dans Firestore.
+         */
+        async function updateUserData(data) {
+            if (!db || !userId) {
+                console.error("Impossible de mettre à jour : db ou userId manquant.");
+                return;
+            }
+            loading = true;
+            error = '';
+            renderApp(); 
+            try {
+                const userDocRef = doc(db, 'artifacts', appId, 'users', userId, 'profile', 'data');
+                await setDoc(userDocRef, data, { merge: true });
+                console.log("Document utilisateur mis à jour avec succès.");
+            } catch (e) {
+                console.error("Erreur lors de la mise à jour Firestore:", e);
+                error = "Erreur de sauvegarde des données. Veuillez réessayer.";
+            } finally {
+                loading = false;
+                renderApp(); 
+            }
+        }
+        
+        // --- GESTION DE LA MODALE CUSTOM (à l'intérieur du module) ---
+        
+        function showModal(title, message, iconName = 'Circle', iconClass = 'text-blue-500') {
+            const modalOverlay = document.getElementById('custom-modal-overlay');
+            const modalTitle = modalOverlay.querySelector('#modal-title');
+            const modalMessage = modalOverlay.querySelector('#modal-message');
+            const modalIcon = modalOverlay.querySelector('#modal-icon');
+            const modalIconContainer = modalIcon.parentElement; // Le conteneur de l'icône pour créer l'icône Lucide
+            
+            modalTitle.textContent = title;
+            modalMessage.innerHTML = message;
+            
+            // Re-render de l'icône Lucide pour changer
+            modalIconContainer.innerHTML = `<i id="modal-icon" data-lucide="${iconName}" class="w-12 h-12 mb-4 mx-auto ${iconClass}"></i>`;
+            
+            modalOverlay.classList.add('open');
+            // S'assurer que les icônes sont mises à jour
+            if (typeof createIcons !== 'undefined') {
+                createIcons({ icons: lucide.icons });
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('custom-modal-overlay').classList.remove('open');
+        }
+
+
+        // --- Utilitaires d'Affichage ---
+
+        function renderApp() {
+            // Re-render le contenu principal
+            const container = document.getElementById('content-container');
+            if (!container) return;
+
+            // Mise à jour de l'ID utilisateur et du bouton de déconnexion
+            const userIdDisplay = document.getElementById('user-id-display');
+            if (userIdDisplay) { userIdDisplay.textContent = `ID: ${userId ? userId.substring(0, 8) + '...' : 'Chargement...'}`; }
+            const logoutButton = document.getElementById('logout-button');
+            if (logoutButton) {
+                if (auth?.currentUser) { logoutButton.classList.remove('hidden'); } else { logoutButton.classList.add('hidden'); }
+            }
+            // Mise à jour du lien du support dans le footer
+            const phoneDisplay = document.getElementById('footer-phone-display');
+            if (phoneDisplay) { 
+                phoneDisplay.textContent = SUPPORT_PHONE_NUMBER;
+                phoneDisplay.href = `tel:${SUPPORT_PHONE_NUMBER.replace(/ /g, '')}`;
+            }
+
+            if (loading || !isAuthReady) {
+                container.innerHTML = renderLoadingScreen();
+            } else if (error) {
+                container.innerHTML = renderErrorScreen();
+            } else {
+                switch (currentStep) {
+                    case APP_STATE.OFFER_SELECTION:
+                        container.innerHTML = renderOfferSelectionComponent();
+                        attachOfferSelectionListeners();
+                        break;
+                    case APP_STATE.PAYMENT_INSTRUCTION:
+                        container.innerHTML = renderPaymentInstructionComponent();
+                        attachPaymentInstructionListeners();
+                        break;
+                    case APP_STATE.ACT_SELECTION:
+                        container.innerHTML = renderActSelectionComponent();
+                        attachActSelectionListeners();
+                        break;
+                    case APP_STATE.ACT_FORM_INPUT:
+                        container.innerHTML = renderActFormComponent();
+                        attachActFormListeners();
+                        break;
+                    case APP_STATE.SUCCESS:
+                        container.innerHTML = renderSuccessComponent();
+                        break;
+                    default:
+                        container.innerHTML = renderLoadingScreen();
+                        break;
+                }
+            }
+            // Mettre à jour les icônes Lucide après la mise à jour du DOM
+            if (typeof createIcons !== 'undefined') {
+                createIcons({ icons: lucide.icons });
+            }
+        }
+
+
+        // --- Fonctions de rendu d'étape ---
+        
+        function renderLoadingScreen() {
+            return `
+                <div class="flex items-center justify-center min-h-[300px]">
+                    <div class="flex flex-col items-center ${styles.card}">
+                        <i data-lucide="loader" class="w-8 h-8 text-primary animate-spin"></i>
+                        <p class="mt-4 text-gray-600">Initialisation de l'application...</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderErrorScreen() {
+             return `
+                <div class="${styles.card}">
+                    <i data-lucide="x-circle" class="w-12 h-12 text-red-600 mx-auto mb-6"></i>
+                    <h2 class="${styles.headerText}">Erreur Critique</h2>
+                    <p class="mt-2 text-center text-sm text-gray-600">
+                        Une erreur inattendue est survenue: ${error || "Vérifiez votre connexion et rechargez."}
+                    </p>
+                </div>
+            `;
+        }
+
+        function renderMessageDisplay(msg, type = 'error') {
+            const color = type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700';
+            const icon = type === 'error' ? 'x-circle' : 'check-circle';
+            return `
+                <div class="p-4 rounded-xl mt-4 ${color} flex items-center">
+                    <i data-lucide="${icon}" class="w-5 h-5 mr-2"></i>
+                    <p class="text-sm font-medium">${msg}</p>
+                </div>
+            `;
+        }
+        
+        // RENDU STEP 1: Sélection de l'Offre
+        function renderOfferSelectionComponent() {
+            return `
+                <div class="${styles.card}">
+                    <i data-lucide="shopping-cart" class="w-12 h-12 text-primary mx-auto mb-6"></i>
+                    <h2 class="${styles.headerText}">Choisissez votre Offre</h2>
+                    <p class="mt-2 text-center text-sm text-gray-600">
+                        Débloquez l'accès à la plateforme avec une de nos offres flexibles.
+                    </p>
+
+                    <div class="mt-8 space-y-4">
+                        <!-- Carte Offre ABONNEMENT -->
+                        <div 
+                            data-offer="abonnement"
+                            class="offer-select-card bg-primary text-white p-6 rounded-xl shadow-lg border-2 border-primary cursor-pointer transition transform hover:scale-[1.02] relative"
+                        >
+                             <div class="absolute top-0 right-0 bg-green-accent text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-xl">
+                                Populaire
+                            </div>
+                            <h3 class="text-xl font-bold flex items-center mb-2">
+                                <i data-lucide="unlock" class="w-5 h-5 mr-2"></i>
+                                Abonnement ${DUREE_ABONNEMENT}
+                            </h3>
+                            <p class="text-4xl font-extrabold mb-1">${FRAIS_ABONNEMENT.toLocaleString('fr-FR')} XOF</p>
+                            <p class="text-sm">Accès illimité à tous les actes fiscaux. Idéal pour les entreprises.</p>
+                            <button class="mt-4 bg-white text-primary font-bold py-2 px-4 rounded-lg text-sm hover:bg-gray-100 transition">
+                                Sélectionner
+                            </button>
+                        </div>
+                        
+                        <!-- Carte Offre ACTE UNIQUE -->
+                        <div 
+                            data-offer="acte_unique"
+                            class="offer-select-card bg-white text-gray-800 p-6 rounded-xl shadow-lg border-2 border-gray-200 cursor-pointer transition transform hover:scale-[1.02]"
+                        >
+                            <h3 class="text-xl font-bold flex items-center mb-2">
+                                <i data-lucide="list-checks" class="w-5 h-5 mr-2 text-orange-money"></i>
+                                Acte Unique
+                            </h3>
+                            <p class="text-4xl font-extrabold text-orange-money mb-1">${FRAIS_ACTE_UNIQUE.toLocaleString('fr-FR')} XOF</p>
+                            <p class="text-sm text-gray-600">Un seul document généré. Parfait pour un besoin ponctuel.</p>
+                            <button class="mt-4 bg-orange-money text-white font-bold py-2 px-4 rounded-lg text-sm hover:bg-orange-600 transition">
+                                Sélectionner
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            `;
+        }
+
+        function attachOfferSelectionListeners() {
+            document.querySelectorAll('.offer-select-card').forEach(card => {
+                card.onclick = () => {
+                    const offer = card.getAttribute('data-offer');
+                    let amount = offer === 'abonnement' ? FRAIS_ABONNEMENT : FRAIS_ACTE_UNIQUE;
+                    
+                    updateUserData({ 
+                        selectedOffer: offer, 
+                        amountPaid: amount,
+                        paymentStatus: 'PENDING',
+                        transactionId: null,
+                        actUsed: false,
+                        selectedAct: null // Réinitialise l'acte en cours
+                    });
+                };
+            });
+        }
+
+
+        // RENDU STEP 2: Instructions de Paiement & Saisie ID
+        function renderPaymentInstructionComponent() {
+            const offer = userDoc?.selectedOffer;
+            const amount = userDoc?.amountPaid;
+            const isAbonnement = offer === 'abonnement';
+            const description = isAbonnement ? `l'abonnement de ${DUREE_ABONNEMENT}` : "un acte unique";
+            
+            return `
+            
