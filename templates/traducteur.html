@@ -1,1 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>IA Traducteur Vocal</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f0f2f5; padding: 50px; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: inline-block; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🎙️ Traduire la voix d'une vidéo</h1>
+        <form action="/process_video" method="post" enctype="multipart/form-data">
+            <p>Choisir la vidéo (Français) :</p>
+            <input type="file" name="video" accept="video/*" required><br><br>
+            
+            <p>Traduire vers :</p>
+            <select name="langue">
+                <option value="en">Anglais 🇺🇸</option>
+                <option value="fr">Français 🇫🇷</option>
+                <option value="es">Espagnol 🇪🇸</option>
+                <option value="de">Allemand 🇩🇪</option>
+            </select><br><br>
+            
+            <button type="submit">Lancer la traduction IA</button>
+        </form>
+    </div>
+</body>
+              </html>
 
