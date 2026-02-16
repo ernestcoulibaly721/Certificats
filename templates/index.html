@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideoTrans - Traduction Vidéo Facile</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <header class="main-header">
+        <h1>VideoTrans</h1>
+        <nav>
+            <a href="#tarifs">Forfaits Pro (5000 FCFA/mois)</a>
+            <a href="mailto:contact@videotrans.com">Contact</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="hero-section">
+            <h2>Traduisez vos Vidéos, Touchez le Monde 🌍</h2>
+            <p>De l'Anglais au Français : doublage IA, Voix Pro, et Sous-titres incrustés.</p>
+        </section>
+
+        <section class="upload-section">
+            <div class="main-form">
+                <div class="drop-zone" id="drop-zone">
+                    <p>Déposez votre fichier vidéo ici</p>
+                    <p>ou</p>
+
+                    <input type="file" id="video-upload" accept="video/*" hidden> 
+                    
+                    <label for="video-upload" class="button cta-red big-button">
+                        Sélectionner un Fichier Vidéo
+                    </label>
+                </div>
+
+                <div class="options-container">
+                    <div class="option-group">
+                        <label for="source-language">Langue Source :</label>
+                        <select id="source-language">
+                            <option value="auto">Détection Auto</option>
+                            <option value="en">Anglais</option>
+                            <option value="fr">Français</option>
+                            </select>
+                    </div>
+
+                    <div class="option-group">
+                        <label for="target-language">Traduire Vers :</label>
+                        <select id="target-language">
+                            <option value="fr">Français</option>
+                            <option value="en">Anglais</option>
+                            </select>
+                    </div>
+
+                    <div class="option-group">
+                        <label for="voice-style">Style de Voix :</label>
+                        <select id="voice-style">
+                            <option value="standard-f">Voix Standard (Féminine)</option>
+                            <option value="standard-m">Voix Standard (Masculine)</option>
+                            <option value="pro-f">Voix Pro (Féminine)</option>
+                            <option value="pro-m">Voix Pro (Masculine)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="start-button" disabled>Lancer la Traduction</button>
+            </div>
+        </section>
+
+        <section id="tarifs" class="pricing-section">
+            <h3>💰 Tarifs : Choisissez votre Croissance</h3>
+            <div class="pricing-grid">
+                
+                <div class="card basic-card">
+                    <h4>Utilisation Unique</h4>
+                    <p class="price">1 000 FCFA</p>
+                    <ul>
+                        <li><span class="icon">✅</span> 1 Traduction Complète</li>
+                        <li><span class="icon">❌</span> Voix Standard uniquement</li>
+                        <li><span class="icon">❌</span> Sous-titres non incrustés</li>
+                    </ul>
+                    <a href="#" class="button cta-red">Acheter 1 Traduction</a>
+                </div>
+
+                <div class="card pro-card">
+                    <h4>⭐ Forfait PRO</h4>
+                    <p class="price">5 000 FCFA / mois</p>
+                    <ul>
+                        <li><span class="icon">✅</span> Traductions Illimitées</li>
+                        <li><span class="icon">✅</span> Accès aux Voix IA Pro</li>
+                        <li><span class="icon">✅</span> Sous-titres incrustés HD</li>
+                    </ul>
+                    <a href="#" class="button cta-red">S'abonner au PRO</a>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 VideoTrans. Tous droits réservés.</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
