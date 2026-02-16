@@ -1,32 +1,110 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>IA Traducteur Vocal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yak Traducteur IA | Vidéo</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #f0f2f5; padding: 50px; }
-        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: inline-block; }
-        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        :root {
+            --primary: #007bff;
+            --dark: #1a1a1a;
+            --light: #f8f9fa;
+        }
+
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: var(--light); 
+            margin: 0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh;
+        }
+
+        .card { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+            width: 90%; 
+            max-width: 400px; 
+            text-align: center;
+        }
+
+        h1 { color: var(--dark); font-size: 1.5em; margin-bottom: 20px; }
+        
+        .upload-section {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            background: #fafafa;
+        }
+
+        select, button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        select { border: 1px solid #ddd; }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover { background: #0056b3; }
+
+        .loader {
+            display: none;
+            margin-top: 15px;
+            color: var(--primary);
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
+
     <div class="card">
-        <h1>🎙️ Traduire la voix d'une vidéo</h1>
-        <form action="/process_video" method="post" enctype="multipart/form-data">
-            <p>Choisir la vidéo (Français) :</p>
-            <input type="file" name="video" accept="video/*" required><br><br>
-            
-            <p>Traduire vers :</p>
+        <h1>🎙️ Traducteur de Vidéo IA</h1>
+        <p style="color: #666; font-size: 0.9em;">Traduisez la voix de vos vidéos en un clic.</p>
+
+        <form id="uploadForm" action="/process_video" method="post" enctype="multipart/form-data">
+            <div class="upload-section">
+                <input type="file" name="video" accept="video/*" required>
+            </div>
+
+            <label style="display:block; text-align:left; font-size: 0.8em; color: #555;">Langue de destination :</label>
             <select name="langue">
                 <option value="en">Anglais 🇺🇸</option>
                 <option value="fr">Français 🇫🇷</option>
                 <option value="es">Espagnol 🇪🇸</option>
                 <option value="de">Allemand 🇩🇪</option>
-            </select><br><br>
-            
-            <button type="submit">Lancer la traduction IA</button>
-        </form>
-    </div>
-</body>
-              </html>
+                <option value="ar">Arabe 🇸🇦</option>
+            </select>
 
+            <button type="submit" onclick="showLoader()">🚀 Lancer la traduction</button>
+        </form>
+
+        <div id="loadingMessage" class="loader">
+            ⏳ Traitement en cours... <br>
+            (Cela peut prendre 1 à 2 minutes)
+        </div>
+    </div>
+
+    <script>
+        function showLoader() {
+            document.getElementById('loadingMessage').style.display = 'block';
+        }
+    </script>
+
+</body>
+    </html>
+    
