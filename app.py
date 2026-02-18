@@ -1,23 +1,24 @@
 import os
-import asyncio
 import traceback
 import time
 from flask import Flask, render_template, request, send_file
 import moviepy.editor as mp
 import speech_recognition as sr
 from googletrans import Translator
-import edge_tts
+from gtts import gTTS
+from pydub import AudioSegment
 
 app = Flask(__name__)
 TEMP_DIR = "/tmp"
 
-async def generate_voice(text, voice_name, output_path):
-    """Génère la voix masculine via Edge-TTS"""
-    # On s'assure que le fichier n'existe pas déjà
-    if os.path.exists(output_path):
-        os.remove(output_path)
-    communicate = edge_tts.Communicate(text, voice_name)
-    await communicate.save(output_path)
+def transformer_en_voix_homme(input_path, output_path):
+    """Baisse la tonalité pour simuler une voix d'homme"""
+    sound = AudioSegment.from_file(input_path)
+    # On baisse le pitch (octaves)
+    new_sample_rate = int(sound.frame_rate * 0.8) # 0.8 = plus grave
+    low_pitch_sound = sound._spawn(sound.raw_data, overrides={'frame_rate': new_sample_rate})
+    low_pitch_sound = low_pitch_sound.set_frame_rate(44100)
+    low_pitch_sound.export(output_path, format="mp3")
 
 @app.route('/')
 def index():
@@ -28,15 +29,14 @@ def process_video():
     file = request.files['video']
     langue_dest = request.form.get('langue', 'en')
     
-    if not file:
-        return "Aucun fichier reçu."
+    if not file: return "Aucun fichier reçu."
 
-    # ID unique pour éviter les mélanges de fichiers entre les tests
     timestamp = int(time.time())
     video_input = os.path.join(TEMP_DIR, f"in_{timestamp}.mp4")
     video_output = os.path.join(TEMP_DIR, f"out_{timestamp}.mp4")
     audio_temp = os.path.join(TEMP_DIR, f"audio_{timestamp}.wav")
-    voice_temp = os.path.join(TEMP_DIR, f"voice_{timestamp}.mp3")
+    voice_raw = os.path.join(TEMP_DIR, f"voice_raw_{timestamp}.mp3")
+    voice_man = os.path.join(TEMP_DIR, f"voice_man_{timestamp}.mp3")
     
     file.save(video_input)
     
@@ -55,21 +55,15 @@ def process_video():
         translator = Translator()
         translated_text = translator.translate(text, dest=langue_dest).text
         
-        # 4. CHOIX DE LA VOIX D'HOMME (FORCÉ)
-        # Henri pour le français, Guy pour l'anglais
-        if langue_dest == 'fr':
-            selected_voice = "fr-FR-HenriNeural"
-        else:
-            selected_voice = "en-US-GuyNeural"
+        # 4. Génération Voix Google (Stable)
+        tts = gTTS(translated_text, lang=langue_dest)
+        tts.save(voice_raw)
         
-        # Exécution de la génération de voix
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(generate_voice(translated_text, selected_voice, voice_temp))
-        loop.close()
+        # 5. Transformation en voix d'homme
+        transformer_en_voix_homme(voice_raw, voice_man)
         
-        # 5. Fusion de la nouvelle voix
-        new_audio = mp.AudioFileClip(voice_temp)
+        # 6. Fusion finale
+        new_audio = mp.AudioFileClip(voice_man)
         final_clip = clip.set_audio(new_audio)
         
         final_clip.write_videofile(
@@ -81,7 +75,6 @@ def process_video():
             logger=None
         )
         
-        # Fermeture des clips pour libérer Render
         clip.close()
         new_audio.close()
         final_clip.close()
@@ -94,3 +87,4 @@ def process_video():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+    
