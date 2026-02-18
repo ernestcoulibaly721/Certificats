@@ -1,24 +1,21 @@
 import os
+import asyncio
 import traceback
 import time
 from flask import Flask, render_template, request, send_file
 import moviepy.editor as mp
 import speech_recognition as sr
 from googletrans import Translator
-from gtts import gTTS
-from pydub import AudioSegment
+import edge_tts
 
 app = Flask(__name__)
 TEMP_DIR = "/tmp"
 
-def transformer_en_voix_homme(input_path, output_path):
-    """Baisse la tonalité pour simuler une voix d'homme"""
-    sound = AudioSegment.from_file(input_path)
-    # On baisse le pitch (octaves)
-    new_sample_rate = int(sound.frame_rate * 0.8) # 0.8 = plus grave
-    low_pitch_sound = sound._spawn(sound.raw_data, overrides={'frame_rate': new_sample_rate})
-    low_pitch_sound = low_pitch_sound.set_frame_rate(44100)
-    low_pitch_sound.export(output_path, format="mp3")
+async def generate_voice(text, voice_name, output_path):
+    if os.path.exists(output_path):
+        os.remove(output_path)
+    communicate = edge_tts.Communicate(text, voice_name)
+    await communicate.save(output_path)
 
 @app.route('/')
 def index():
@@ -35,8 +32,7 @@ def process_video():
     video_input = os.path.join(TEMP_DIR, f"in_{timestamp}.mp4")
     video_output = os.path.join(TEMP_DIR, f"out_{timestamp}.mp4")
     audio_temp = os.path.join(TEMP_DIR, f"audio_{timestamp}.wav")
-    voice_raw = os.path.join(TEMP_DIR, f"voice_raw_{timestamp}.mp3")
-    voice_man = os.path.join(TEMP_DIR, f"voice_man_{timestamp}.mp3")
+    voice_temp = os.path.join(TEMP_DIR, f"voice_{timestamp}.mp3")
     
     file.save(video_input)
     
@@ -49,31 +45,41 @@ def process_video():
         r = sr.Recognizer()
         with sr.AudioFile(audio_temp) as source:
             audio_data = r.record(source)
-            text = r.recognize_google(audio_data, language="fr-FR")
+            text_origine = r.recognize_google(audio_data, language="fr-FR")
         
         # 3. Traduction
         translator = Translator()
-        translated_text = translator.translate(text, dest=langue_dest).text
+        # Note: Googletrans supporte 'bm' (Bambara) de façon limitée
+        translated = translator.translate(text_origine, dest=langue_dest)
+        translated_text = translated.text
         
-        # 4. Génération Voix Google (Stable)
-        tts = gTTS(translated_text, lang=langue_dest)
-        tts.save(voice_raw)
+        # 4. Choix de la voix
+        # Pour le Bambara (bm), on utilise une voix FR par défaut car la voix BM n'existe pas encore
+        voices = {
+            'fr': 'fr-FR-HenriNeural',
+            'en': 'en-US-GuyNeural',
+            'es': 'es-ES-AlvaroNeural',
+            'bm': 'fr-FR-HenriNeural' 
+        }
+        selected_voice = voices.get(langue_dest, "en-US-GuyNeural")
         
-        # 5. Transformation en voix d'homme
-        transformer_en_voix_homme(voice_raw, voice_man)
+        # 5. Génération Audio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(generate_voice(translated_text, selected_voice, voice_temp))
+        loop.close()
         
-        # 6. Fusion finale
-        new_audio = mp.AudioFileClip(voice_man)
+        # 6. Montage final
+        new_audio = mp.AudioFileClip(voice_temp)
         final_clip = clip.set_audio(new_audio)
         
-        final_clip.write_videofile(
-            video_output, 
-            codec="libx264", 
-            audio_codec="aac",
-            fps=12, 
-            preset="ultrafast",
-            logger=None
-        )
+        # Optionnel: Ajout du texte sur la vidéo si c'est du Bambara
+        if langue_dest == 'bm':
+            txt_clip = mp.TextClip(translated_text, fontsize=24, color='white', bg_color='black', method='caption', size=clip.size)
+            txt_clip = txt_clip.set_duration(clip.duration).set_position(('center', 'bottom'))
+            final_clip = mp.CompositeVideoClip([final_clip, txt_clip])
+
+        final_clip.write_videofile(video_output, codec="libx264", audio_codec="aac", fps=12, preset="ultrafast", logger=None)
         
         clip.close()
         new_audio.close()
@@ -82,9 +88,9 @@ def process_video():
         return send_file(video_output, as_attachment=True)
         
     except Exception as e:
-        return f"Erreur : {str(e)}"
+        return f"Détails de l'erreur : {str(e)}"
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-    
+        
