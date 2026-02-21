@@ -104,6 +104,18 @@
             document.getElementById('btnSubmit').style.display = 'none';
             document.getElementById('loader').style.display = 'block';
         };
+        // ... tes anciens scripts (comme celui du loader) ...
+
+    function checkCode() {
+        var code = document.getElementById('accessCode').value;
+        if (code === 'MALI2026') {
+            document.getElementById('paywall').style.display = 'none';
+            alert('Bienvenue sur YAK PREMIUM !');
+        } else {
+            alert('Code incorrect. Veuillez contacter le support.');
+        }
+    }
+</script>
     </script>
 </body>
     </html>
