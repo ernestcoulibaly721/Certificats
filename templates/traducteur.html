@@ -17,7 +17,30 @@
         .badge-new { background: #10b981; font-size: 10px; vertical-align: middle; }
     </style>
 </head>
-<body>
+<body><div id="paywall" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.98); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
+    <div class="text-center p-4" style="max-width: 400px; background: #1e293b; border: 2px solid #3b82f6; border-radius: 20px; box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);">
+        <div class="mb-3">
+            <i class="fas fa-lock-alt fa-3x text-warning"></i>
+        </div>
+        <h2 class="fw-bold text-white mb-3">Accès Restreint</h2>
+        <p class="text-slate-300 mb-4">Rejoignez la communauté <strong>YAK PREMIUM</strong> pour débloquer le Traducteur Vidéo et MovieBox Pro HD.</p>
+        
+        <div class="bg-dark p-3 rounded mb-4 border border-secondary">
+            <h4 class="text-warning mb-0">1.000 FCFA / mois</h4>
+            <small class="text-muted">Orange Money, Moov, Wave, Airtel</small>
+        </div>
+
+        <a href="https://wa.me/VOTRE_NUMERO?text=Bonjour,%20je%20veux%20mon%20code%20d'accès%20Premium" class="btn btn-primary w-100 mb-3 p-3 fw-bold">
+            <i class="fab fa-whatsapp me-2"></i> ACTIVER MON ACCÈS
+        </a>
+        
+        <div class="mt-3">
+            <input type="password" id="accessCode" class="form-control bg-dark text-white border-secondary text-center mb-2" placeholder="Entrez votre code d'accès">
+            <button onclick="checkCode()" class="btn btn-outline-success btn-sm w-100">VALIDER LE CODE</button>
+        </div>
+    </div>
+            </div>
+                
     <div class="container py-4">
         <div class="text-center mb-4">
             <h1 class="display-6 fw-bold text-primary">YAK AUTO-IMMO</h1>
