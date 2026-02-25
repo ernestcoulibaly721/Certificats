@@ -1,48 +1,47 @@
+<div id="payment-area" class="mt-4">
+    <div id="dynamic-button">
+        <p class="text-center text-white">Chargement des options de paiement...</p>
+    </div>
+</div>
+
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const myNumber = "22671863426"; // <--- REMPLACE ICI ton numéro (chiffres uniquement)
+
     fetch('https://ipapi.co/json/')
         .then(response => response.json())
         .then(data => {
-            const countryCode = data.country_code; 
+            const countryCode = data.country_code || 'ML'; 
             let buttonHtml = '';
-            let priceDetail = '';
-            const myNumber = "VOTRE_NUMERO"; // REMPLACE PAR TON NUMÉRO (ex: 22370000000)
-
+            
             const providers = {
                 'ML': { name: 'MALI', method: 'Orange / Moov', color: '#ffcc00', text: 'dark', price: '1.000 FCFA' },
                 'BF': { name: 'BURKINA FASO', method: 'Orange / Moov', color: '#009e49', text: 'white', price: '1.000 FCFA' },
                 'CI': { name: 'CÔTE D’IVOIRE', method: 'Wave / Orange / MTN', color: '#1dcaff', text: 'white', price: '1.000 FCFA' },
-                'SN': { name: 'SÉNÉGAL', method: 'Wave / Orange / Free', color: '#ba0c2f', text: 'white', price: '1.000 FCFA' },
-                'GN': { name: 'GUINÉE', method: 'Orange / MTN Money', color: '#ce1126', text: 'white', price: '15.000 GNF' },
+                'SN': { name: 'SÉNÉGAL', method: 'Wave / Orange', color: '#ba0c2f', text: 'white', price: '1.000 FCFA' },
+                'GN': { name: 'GUINÉE', method: 'Orange / MTN', color: '#ce1126', text: 'white', price: '15.000 GNF' },
                 'TG': { name: 'TOGO', method: 'T-Money / Flooz', color: '#006a4e', text: 'white', price: '1.000 FCFA' },
-                'BJ': { name: 'BÉNIN', method: 'MTN / Moov Money', color: '#fcd116', text: 'dark', price: '1.000 FCFA' }
+                'BJ': { name: 'BÉNIN', method: 'MTN / Moov', color: '#fcd116', text: 'dark', price: '1.000 FCFA' }
             };
 
-            if (providers[countryCode]) {
-                const p = providers[countryCode];
-                buttonHtml = `
-                    <div class="text-center mb-2">
-                        <span class="badge bg-light text-dark p-2">Prix Local : ${p.price}</span>
-                    </div>
-                    <a href="https://wa.me/${myNumber}?text=Bonjour_depuis_le_${p.name}_je_souhaite_payer_${p.price}_via_${p.method}" 
-                       class="btn w-100 p-3 fw-bold shadow-sm" 
-                       style="background-color: ${p.color}; color: ${p.text}; border: none; border-radius: 12px;">
-                        <i class="fas fa-wallet me-2"></i> PAYER VIA ${p.method}
-                    </a>`;
-            } else {
-                buttonHtml = `
-                    <div class="text-center mb-2"><span class="badge bg-light text-dark p-2">Prix : 2$ USD</span></div>
-                    <a href="https://wa.me/${myNumber}?text=Bonjour_je_souhaite_m_abonner_depuis_mon_pays" 
-                       class="btn btn-primary w-100 p-3 fw-bold" style="border-radius: 12px;">
-                        <i class="fas fa-globe me-2"></i> PAYER MON ACCÈS (INTERNATIONAL)
-                    </a>`;
-            }
+            const p = providers[countryCode] || { name: 'AFRIQUE', method: 'Mobile Money', color: '#3b82f6', text: 'white', price: '1.000 FCFA' };
+
+            buttonHtml = `
+                <div class="text-center mb-2">
+                    <span class="badge bg-light text-dark p-2">Prix Local : ${p.price}</span>
+                </div>
+                <a href="https://wa.me/${myNumber}?text=Bonjour_je_veux_payer_${p.price}_depuis_le_${p.name}" 
+                   class="btn w-100 p-3 fw-bold shadow-sm" 
+                   style="background-color: ${p.color}; color: ${p.text}; border: none; border-radius: 12px;">
+                    <i class="fas fa-wallet me-2"></i> PAYER VIA ${p.method}
+                </a>`;
 
             document.getElementById('dynamic-button').innerHTML = buttonHtml;
         })
         .catch(err => {
-            document.getElementById('dynamic-button').innerHTML = `
-                <a href="https://wa.me/VOTRE_NUMERO" class="btn btn-secondary w-100 p-3">CONTACTER LE SUPPORT PAIEMENT</a>
-            `;
+            console.error("Erreur de géoloc:", err);
+            document.getElementById('dynamic-button').innerHTML = `<a href="https://wa.me/${myNumber}" class="btn btn-primary w-100 p-3">PAYER MON ACCÈS</a>`;
         });
-                    </script>
-
+});
+    </script>
+    
